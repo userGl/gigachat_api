@@ -1,2 +1,5 @@
 chat.log
 .venv
+.cursorindexingignore
+.env
+.specstory/.project.json
