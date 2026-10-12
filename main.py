@@ -63,10 +63,10 @@ def get_api_response(description: str, access_token: str, model_name: str, tempe
     )
 
     completion = client.chat.completions.create(
-        model=model_name, # <-- ИСПРАВЛЕНО: убраны кавычки
+        model=model_name,
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Подбери подарки для такого человека: {description}"}
+            {"role": "user", "content": f"Предложи варианты как провести вечер: {description}"}
         ],
         temperature=temperature,
     )
@@ -75,9 +75,7 @@ def get_api_response(description: str, access_token: str, model_name: str, tempe
 if __name__ == "__main__":
     log_print(f"\n--- Запуск: {time.strftime('%Y-%m-%d %H:%M:%S')} ---")
     access_token = get_access_token()
-    log_print(f"Выбранная модель: {GIGACHAT_MODEL}")
     log_print(f"Промпт: {system_prompt}")
-    log_print(f"Температура: {GIGACHAT_TEMPERATURE}")
     while True:
         description = input("\nВедите описание пользователя (0 — выход): ").strip()
         if description == "0":
@@ -89,11 +87,13 @@ if __name__ == "__main__":
         # Получаем полный объект ответа
         full_response = response
         # Диагностический вывод, включать при необходимости
-        log_print(f"Full response: {full_response.model_dump_json(indent=2)}")        
+        # log_print(f"Full response: {full_response.model_dump_json(indent=2)}")        
         finish_reason = full_response.choices[0].finish_reason
         usage = full_response.usage
         text_response = full_response.choices[0].message.content
         log_print(f"Описание пользователя:\n{description}")
-        log_print(f"Ответ:\n{text_response}")        
+        log_print(f"Ответ:\n{text_response}")
+        log_print(f"Модель: {full_response.model}")
+        log_print(f"Температура: {GIGACHAT_TEMPERATURE}")   
         log_print(f"Время выполнения: {time_elapsed:.2f} секунд")
-        log_print( f"Метаданные: Finish Reason='{finish_reason}', " f"Токены (Всего/Промпт/Ответ): {usage.total_tokens}/{usage.prompt_tokens}/{usage.completion_tokens}" )
+        log_print( f"Метаданные: Finish Reason='{finish_reason}', " f"Токены (Всего/Промпт/Ответ/Кэшированные промпт): {usage.total_tokens}/{usage.prompt_tokens}/{usage.completion_tokens}/{usage.precached_prompt_tokens}" )
