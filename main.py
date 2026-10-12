@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 import requests
 import httpx
@@ -14,6 +15,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 GIGACHAT_AUTH_KEY = os.getenv("GIGACHAT_AUTH_KEY")
 GIGACHAT_SCOPE = os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
+GIGACHAT_MODEL = os.getenv("GIGACHAT_MODEL", "GigaChat")
+GIGACHAT_TEMPERATURE = float(os.getenv("GIGACHAT_TEMPERATURE", 0.8))
 
 if not GIGACHAT_AUTH_KEY:
     raise ValueError("Не найден GIGACHAT_AUTH_KEY в .env")
@@ -52,9 +55,7 @@ def log_print(text):
     with (base_dir / "chat.log").open("a", encoding="utf-8") as log:
         log.write(text + "\n")
 
-def get_gift_ideas(user_description: str) -> str:
-    access_token = get_access_token()
-
+def get_api_response(description: str, access_token: str, model_name: str, temperature: float):
     client = OpenAI(
         api_key=access_token,
         base_url="https://gigachat.devices.sberbank.ru/api/v1",
@@ -62,19 +63,37 @@ def get_gift_ideas(user_description: str) -> str:
     )
 
     completion = client.chat.completions.create(
-        model="GigaChat",
+        model=model_name, # <-- ИСПРАВЛЕНО: убраны кавычки
         messages=[
             {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": f"Подбери подарки для такого человека: {user_description}"
-            }
+            {"role": "user", "content": f"Подбери подарки для такого человека: {description}"}
         ],
-        temperature=0.8,
+        temperature=temperature,
     )
-
-    return completion.choices[0].message.content
+    return completion
 
 if __name__ == "__main__":
-    person_description = "Девушка, 27 лет, любит йогу, кофе, уютные вещи для дома и путешествия"
-    print(get_gift_ideas(person_description))
+    log_print(f"\n--- Запуск: {time.strftime('%Y-%m-%d %H:%M:%S')} ---")
+    access_token = get_access_token()
+    log_print(f"Выбранная модель: {GIGACHAT_MODEL}")
+    log_print(f"Промпт: {system_prompt}")
+    log_print(f"Температура: {GIGACHAT_TEMPERATURE}")
+    while True:
+        description = input("\nВедите описание пользователя (0 — выход): ").strip()
+        if description == "0":
+            log_print("Выход из программы.")
+            break
+        started = time.perf_counter()
+        response = get_api_response(description, access_token, GIGACHAT_MODEL, GIGACHAT_TEMPERATURE)
+        time_elapsed = time.perf_counter() - started
+        # Получаем полный объект ответа
+        full_response = response
+        # Диагностический вывод, включать при необходимости
+        log_print(f"Full response: {full_response.model_dump_json(indent=2)}")        
+        finish_reason = full_response.choices[0].finish_reason
+        usage = full_response.usage
+        text_response = full_response.choices[0].message.content
+        log_print(f"Описание пользователя:\n{description}")
+        log_print(f"Ответ:\n{text_response}")        
+        log_print(f"Время выполнения: {time_elapsed:.2f} секунд")
+        log_print( f"Метаданные: Finish Reason='{finish_reason}', " f"Токены (Всего/Промпт/Ответ): {usage.total_tokens}/{usage.prompt_tokens}/{usage.completion_tokens}" )

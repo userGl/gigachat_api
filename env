@@ -1,0 +1,7 @@
+GIGACHAT_MODEL=GigaChat-Max 
+# Варианты: GigaChat (Pro по умолчанию), GigaChat-Lite, GigaChat-Max
+
+GIGACHAT_TEMPERATURE=0.3
+GIGACHAT_TOP_P=1.0
+GIGACHAT_AUTH_KEY=ваш ключ
+GIGACHAT_SCOPE=GIGACHAT_API_PERS
